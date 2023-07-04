@@ -23,21 +23,24 @@ class HotelSearch extends Controller
      */
     public function index()
     {
-        $data = $this->request->all();
-//        $address = $data['address'];
-        $address = 'Rua Belém, 249, Santa Marta, Uberaba, Minas Gerais, Brasil';
-        $rightPlace = $this->processAddress($address);
-
-        dd($rightPlace);
+        return view('HotelSearch.index');
     }
 
-    public function processAddress($address){
-        $result = $this->googleServices->geocode($address);
-        $latitude = $result[0]['geometry']['location']['lat'];
-        $longitude = $result[0]['geometry']['location']['lng'];
+    public function processAddress(){
+        $data = $this->request->all();
+        $address = $data['address'];
+        $orderBy = $data['orderBy'];
 
-        $rightPlace = $this->getNearbyHotels($latitude, $longitude);
-        return $rightPlace;
+        try{
+            $result = $this->googleServices->geocode($address);
+            $latitude = $result[0]['geometry']['location']['lat'];
+            $longitude = $result[0]['geometry']['location']['lng'];
+
+            $rightPlace = $this->getNearbyHotels($latitude, $longitude, $orderBy);
+            return json_encode($rightPlace);
+        } catch (\Exception $exception){
+            return $exception->getMessage();
+        }
     }
 
     public function getNearbyHotels($latitude, $longitude, $orderBy = 'proximity')
@@ -90,7 +93,7 @@ class HotelSearch extends Controller
                             'name' => $hotel[0],
                             'distanceValue' => $distanceValue,
                             'distanceFormated' => $distanceFormated,
-                            'price_per_night' => $hotel[3],
+                            'pricePerNight' => $hotel[3],
                         ];
                     }
                 }
@@ -98,11 +101,17 @@ class HotelSearch extends Controller
                 $iteration++;
             }
 
-        //ORDERING BY DISTANCE
-        $collectHotels = collect($hotels)->sortBy('distanceValue');
+        //CONVERT IN COLLECT TO ORDER WITH LARAVEL METHOD
+        $collectHotels = collect($hotels);
 
-        //GETTING THE NEAREST HOTEL
-        
+        //ORDERING BY OrderBy PARAMETER
+        if($orderBy == 'proximity'){
+            $collectHotels = $collectHotels->sortBy('distanceValue');
+        } else if($orderBy == 'pricepernight'){
+            $collectHotels = $collectHotels->sortBy('price_per_night');
+        }
+
+        //GETTING THE RIGHT PLACE
         return $collectHotels->first();
     }
 

@@ -13,9 +13,8 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
-Route::resource('hotel-search', HotelSearch::class);
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('hotel-search', [HotelSearch::class, 'processAddress'])->name('hotel-search');
+Route::resource('/', HotelSearch::class);
+
 
